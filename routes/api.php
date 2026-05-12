@@ -8,6 +8,8 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
+Route::get('tickets/open',[TicketController::class,'openTickets']);
+
 Route::apiResource('tickets',TicketController::class);
 
 Route::patch('tickets/{ticket}/status',[TicketController::class,'changeStatus']);

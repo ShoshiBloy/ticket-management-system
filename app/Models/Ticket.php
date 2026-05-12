@@ -7,6 +7,7 @@ use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
 class Ticket extends Model
 {
     protected $fillable = [
@@ -52,5 +53,10 @@ class Ticket extends Model
     public function isHighPriority(): bool
     {
         return $this->priority === TicketPriority::HIGH->value;
+    }
+
+    public function scopeOpen(Builder $query): Builder
+    {
+        return $query->where('status', TicketStatus::OPEN->value);
     }
 }

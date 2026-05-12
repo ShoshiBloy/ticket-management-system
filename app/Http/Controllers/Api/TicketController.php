@@ -97,4 +97,15 @@ class TicketController extends Controller
             'data' => new TicketResource($ticket->load('assignedUser')),
         ]);
     }
+
+    public function openTickets()
+    {
+        $tickets = Ticket::query()
+            ->with('assignedUser')
+            ->open()
+            ->latest()
+            ->paginate(10);
+
+        return TicketResource::collection($tickets);
+    }
 }
