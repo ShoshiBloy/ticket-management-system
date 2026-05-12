@@ -42,6 +42,16 @@ function App() {
         sort_direction: "desc",
     });
 
+    const [page, setPage] = useState(1);
+    const [perPage, setPerPage] = useState(10);
+
+    const [pagination, setPagination] = useState({
+        current_page: 1,
+        last_page: 1,
+        per_page: 10,
+        total: 0,
+    });
+
     const [form, setForm] = useState({
         title: "",
         description: "",
@@ -66,6 +76,8 @@ function App() {
             const params = {
                 sort_by: sort.sort_by,
                 sort_direction: sort.sort_direction,
+                page,
+                per_page: perPage,
             };
 
             if (filters.status) {
@@ -77,7 +89,17 @@ function App() {
             }
 
             const response = await axios.get("/api/tickets", { params });
+
             setTickets(response.data.data || []);
+
+            if (response.data.meta) {
+                setPagination({
+                    current_page: response.data.meta.current_page,
+                    last_page: response.data.meta.last_page,
+                    per_page: response.data.meta.per_page,
+                    total: response.data.meta.total,
+                });
+            }
         } catch (err) {
             showError(getErrorMessage(err));
         } finally {
@@ -87,17 +109,24 @@ function App() {
 
     useEffect(() => {
         loadTickets();
-    }, [filters.status, filters.priority, sort.sort_by, sort.sort_direction]);
+    }, [
+        filters.status,
+        filters.priority,
+        sort.sort_by,
+        sort.sort_direction,
+        page,
+        perPage,
+    ]);
 
     const stats = useMemo(() => {
         return {
-            total: tickets.length,
+            total: pagination.total,
             open: tickets.filter((ticket) => ticket.status === "open").length,
             inProgress: tickets.filter((ticket) => ticket.status === "in_progress").length,
             closed: tickets.filter((ticket) => ticket.status === "closed").length,
             high: tickets.filter((ticket) => ticket.priority === "high").length,
         };
-    }, [tickets]);
+    }, [tickets, pagination.total]);
 
     const handleCreate = async (event) => {
         event.preventDefault();
@@ -116,6 +145,7 @@ function App() {
             });
 
             setIsCreateModalOpen(false);
+            setPage(1);
             showMessage("Ticket created successfully.");
             await loadTickets();
         } catch (err) {
@@ -149,6 +179,8 @@ function App() {
     };
 
     const handleSort = (field) => {
+        setPage(1);
+
         setSort((current) => ({
             sort_by: field,
             sort_direction:
@@ -196,11 +228,11 @@ function App() {
                 </header>
 
                 <section className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-                    <StatCard label="Total" value={stats.total} />
-                    <StatCard label="Open" value={stats.open} />
-                    <StatCard label="In Progress" value={stats.inProgress} />
-                    <StatCard label="Closed" value={stats.closed} />
-                    <StatCard label="High Priority" value={stats.high} />
+                    <StatCard label="Total Tickets" value={stats.total} />
+                    <StatCard label="Open On Page" value={stats.open} />
+                    <StatCard label="In Progress On Page" value={stats.inProgress} />
+                    <StatCard label="Closed On Page" value={stats.closed} />
+                    <StatCard label="High Priority On Page" value={stats.high} />
                 </section>
 
                 {message && (
@@ -221,8 +253,7 @@ function App() {
                             <div>
                                 <h2 className="text-xl font-bold">Tickets</h2>
                                 <p className="text-sm text-slate-500">
-                                    Filter tickets, sort columns, and update
-                                    statuses directly from the table.
+                                    Filter tickets, sort columns, update statuses, and move between pages.
                                 </p>
                             </div>
 
@@ -237,12 +268,13 @@ function App() {
 
                                 <select
                                     value={filters.status}
-                                    onChange={(event) =>
+                                    onChange={(event) => {
+                                        setPage(1);
                                         setFilters({
                                             ...filters,
                                             status: event.target.value,
-                                        })
-                                    }
+                                        });
+                                    }}
                                     className="rounded-xl border border-slate-300 px-4 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                 >
                                     {statuses.map((status) => (
@@ -257,12 +289,13 @@ function App() {
 
                                 <select
                                     value={filters.priority}
-                                    onChange={(event) =>
+                                    onChange={(event) => {
+                                        setPage(1);
                                         setFilters({
                                             ...filters,
                                             priority: event.target.value,
-                                        })
-                                    }
+                                        });
+                                    }}
                                     className="rounded-xl border border-slate-300 px-4 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                 >
                                     {priorities.map((priority) => (
@@ -273,6 +306,20 @@ function App() {
                                             {priority.label}
                                         </option>
                                     ))}
+                                </select>
+
+                                <select
+                                    value={perPage}
+                                    onChange={(event) => {
+                                        setPage(1);
+                                        setPerPage(Number(event.target.value));
+                                    }}
+                                    className="rounded-xl border border-slate-300 px-4 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                >
+                                    <option value={5}>5 per page</option>
+                                    <option value={10}>10 per page</option>
+                                    <option value={15}>15 per page</option>
+                                    <option value={25}>25 per page</option>
                                 </select>
                             </div>
                         </div>
@@ -416,6 +463,61 @@ function App() {
                                         ))}
                                 </tbody>
                             </table>
+                        </div>
+
+                        <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="text-sm text-slate-500">
+                                Showing page{" "}
+                                <span className="font-semibold text-slate-800">
+                                    {pagination.current_page}
+                                </span>{" "}
+                                of{" "}
+                                <span className="font-semibold text-slate-800">
+                                    {pagination.last_page}
+                                </span>
+                                {" "}— total{" "}
+                                <span className="font-semibold text-slate-800">
+                                    {pagination.total}
+                                </span>{" "}
+                                tickets
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    disabled={page <= 1 || loading}
+                                    onClick={() =>
+                                        setPage((current) =>
+                                            Math.max(current - 1, 1)
+                                        )
+                                    }
+                                    className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    Previous
+                                </button>
+
+                                <span className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700">
+                                    {pagination.current_page}
+                                </span>
+
+                                <button
+                                    type="button"
+                                    disabled={
+                                        page >= pagination.last_page || loading
+                                    }
+                                    onClick={() =>
+                                        setPage((current) =>
+                                            Math.min(
+                                                current + 1,
+                                                pagination.last_page,
+                                            )
+                                        )
+                                    }
+                                    className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    Next
+                                </button>
+                            </div>
                         </div>
                     </section>
                 </div>
