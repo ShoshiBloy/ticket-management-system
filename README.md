@@ -1,58 +1,280 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Ticket Management System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A Laravel + React ticket management system built as a Full Stack home assignment.
 
-## About Laravel
+The system allows creating, updating, filtering, sorting, assigning, and managing tickets.  
+It also includes business rules and a scheduled command for stale high-priority tickets.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Tech Stack
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- Laravel
+- SQL Server
+- Eloquent ORM
+- Form Requests
+- API Resources
+- Service Layer
+- Artisan Command + Scheduler
+- React
+- Vite
+- Axios
+- Tailwind CSS
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Features
 
-## Learning Laravel
+- Create tickets
+- Update tickets
+- Change ticket status
+- Assign tickets to users
+- List tickets with pagination
+- Filter by status and priority
+- Sort by created date, status, and priority
+- Dashboard statistics
+- React frontend with create-ticket modal
+- Prevent closing unassigned tickets
+- Automatically reopen stale high-priority tickets
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Installation
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+### 1. Clone the repository
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+git clone https://github.com/ShoshiBloy/ticket-management-system.git
+cd ticket-management-system
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+### 2. Install dependencies
 
-## Contributing
+```bash
+composer install
+npm install
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 3. Create environment file
 
-## Code of Conduct
+Windows:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+copy .env.example .env
+```
 
-## Security Vulnerabilities
+Linux/Mac:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+cp .env.example .env
+```
 
-## License
+### 4. Generate application key
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+php artisan key:generate
+```
+
+### 5. Create SQL Server database
+
+```sql
+CREATE DATABASE ticket_management;
+```
+
+### 6. Configure `.env`
+
+```env
+APP_NAME="Ticket Management System"
+APP_ENV=local
+APP_DEBUG=true
+APP_URL=http://127.0.0.1:8000
+APP_TIMEZONE=Asia/Jerusalem
+
+DB_CONNECTION=sqlsrv
+DB_HOST=localhost
+DB_PORT=
+DB_DATABASE=ticket_management
+DB_USERNAME=sa
+DB_PASSWORD=your_password
+DB_ENCRYPT=no
+DB_TRUST_SERVER_CERTIFICATE=true
+```
+
+### 7. Run migrations and seeders
+
+```bash
+php artisan migrate --seed
+```
+
+Or reset the database:
+
+```bash
+php artisan migrate:fresh --seed
+```
+
+### 8. Run the project
+
+Backend:
+
+```bash
+php artisan serve --port=8001
+```
+
+Frontend:
+
+```bash
+npm run dev
+```
+
+Open:
+
+```text
+http://127.0.0.1:8001/tickets
+```
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/tickets` | List tickets with filters, sorting, and pagination |
+| POST | `/api/tickets` | Create a ticket |
+| GET | `/api/tickets/{ticket}` | Get a single ticket |
+| PATCH/PUT | `/api/tickets/{ticket}` | Update ticket details |
+| DELETE | `/api/tickets/{ticket}` | Delete a ticket |
+| PATCH | `/api/tickets/{ticket}/status` | Change ticket status |
+| PATCH | `/api/tickets/{ticket}/assign` | Assign ticket to a user |
+| GET | `/api/tickets/open` | Get open tickets |
+| GET | `/api/tickets/stats` | Get dashboard statistics |
+
+Example filtering and sorting:
+
+```http
+GET /api/tickets?status=open&priority=high&sort_by=priority&sort_direction=desc&per_page=10
+```
+
+## Business Rules
+
+### Closing tickets
+
+A ticket cannot be closed unless it is assigned to a user.
+
+This rule is handled in the service layer, so the controller stays clean and the business logic remains reusable.
+
+### Stale high-priority tickets
+
+High-priority tickets that remain in `in_progress` status for more than 48 hours are automatically returned to `open`.
+
+Manual command:
+
+```bash
+php artisan tickets:reopen-stale-high-priority
+```
+
+Scheduled hourly in Laravel Scheduler:
+
+```php
+Schedule::command('tickets:reopen-stale-high-priority')->hourly();
+```
+
+For local development:
+
+```bash
+php artisan schedule:work
+```
+
+On a server, Laravel Scheduler should be executed by a cron job every minute.
+
+## Code Improvement
+
+Original code:
+
+```php
+public function getOpenTickets()
+{
+    $tickets = DB::select("SELECT * FROM tickets WHERE status = 'open'");
+    return $tickets;
+}
+```
+
+### Problems
+
+- Uses raw SQL instead of Eloquent.
+- Uses `SELECT *`.
+- Hardcodes the status value.
+- Does not use the `Ticket` model.
+- Does not use pagination.
+- Does not use API Resources.
+- Does not eager load related data.
+- Harder to maintain and extend.
+
+### Improved version
+
+```php
+// App\Models\Ticket.php
+
+public function scopeOpen(Builder $query):Builder
+{
+    return $query->where('status',TicketStatus::OPEN->value);
+}
+```
+
+```php
+// App\Http\Controllers\Api\TicketController.php
+
+public function openTickets()
+{
+    $tickets=Ticket::query()
+        ->with('assignedUser')
+        ->open()
+        ->latest()
+        ->paginate(10);
+
+    return TicketResource::collection($tickets);
+}
+```
+
+### Why it is better
+
+- Uses Eloquent and the `Ticket` model.
+- Uses a reusable `open()` scope.
+- Uses `TicketStatus::OPEN->value` instead of a hardcoded string.
+- Uses eager loading for the assigned user.
+- Uses pagination.
+- Returns a consistent API Resource response.
+
+## Frontend
+
+The frontend was implemented with React as a bonus requirement.
+
+It includes:
+
+- Ticket table
+- Create ticket modal
+- Status update select
+- Filters
+- Sorting
+- Pagination
+- Dashboard statistics
+- Success and error messages
+
+Reusable plain JavaScript helper functions were extracted to:
+
+```text
+resources/js/ticketHelpers.js
+```
+
+## Useful Commands
+
+```bash
+php artisan optimize:clear
+php artisan route:list
+php artisan migrate:fresh --seed
+php artisan tickets:reopen-stale-high-priority
+php artisan schedule:list
+npm run build
+```
+
+## Assumptions
+
+- New tickets are created as `open` by default.
+- `handled_at` is set when a ticket moves to `in_progress`.
+- High-priority tickets stuck in progress for more than 48 hours should return to `open`.
+- React was used for the frontend bonus.
+
+## Author
+
+Created as part of a Laravel Full Stack home assignment.
