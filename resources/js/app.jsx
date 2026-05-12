@@ -227,9 +227,6 @@ function App() {
                 <header className="mb-8 rounded-3xl bg-white p-6 shadow-sm">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                         <div>
-                            <p className="text-sm font-semibold uppercase tracking-wide text-blue-600">
-                                Laravel + React
-                            </p>
                             <h1 className="text-3xl font-bold">
                                 Ticket Management System
                             </h1>
