@@ -141,18 +141,18 @@ npm run build
 
 ## API Endpoints
 
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/users` | List users for assignment and filtering |
-| GET | `/api/tickets` | List tickets with filters, sorting, and pagination |
-| POST | `/api/tickets` | Create a ticket |
-| GET | `/api/tickets/{ticket}` | Get a single ticket |
-| PATCH/PUT | `/api/tickets/{ticket}` | Update ticket details |
-| DELETE | `/api/tickets/{ticket}` | Delete a ticket |
-| PATCH | `/api/tickets/{ticket}/status` | Change ticket status |
-| PATCH | `/api/tickets/{ticket}/assign` | Assign or unassign a ticket |
-| GET | `/api/tickets/open` | Get open tickets |
-| GET | `/api/tickets/stats` | Get dashboard statistics |
+| Method    | Endpoint                       | Description                                        |
+| --------- | ------------------------------ | -------------------------------------------------- |
+| GET       | `/api/users`                   | List users for assignment and filtering            |
+| GET       | `/api/tickets`                 | List tickets with filters, sorting, and pagination |
+| POST      | `/api/tickets`                 | Create a ticket                                    |
+| GET       | `/api/tickets/{ticket}`        | Get a single ticket                                |
+| PATCH/PUT | `/api/tickets/{ticket}`        | Update ticket details                              |
+| DELETE    | `/api/tickets/{ticket}`        | Delete a ticket                                    |
+| PATCH     | `/api/tickets/{ticket}/status` | Change ticket status                               |
+| PATCH     | `/api/tickets/{ticket}/assign` | Assign or unassign a ticket                        |
+| GET       | `/api/tickets/open`            | Get open tickets                                   |
+| GET       | `/api/tickets/stats`           | Get dashboard statistics                           |
 
 Example filtering and sorting:
 
@@ -168,7 +168,7 @@ PATCH /api/tickets/1/assign
 
 ```json
 {
-  "assigned_user_id": 1
+    "assigned_user_id": 1
 }
 ```
 
@@ -180,7 +180,7 @@ PATCH /api/tickets/1/assign
 
 ```json
 {
-  "assigned_user_id": null
+    "assigned_user_id": null
 }
 ```
 
@@ -337,7 +337,29 @@ php artisan route:list
 php artisan migrate:fresh --seed
 php artisan tickets:reopen-stale-high-priority
 php artisan schedule:list
+php artisan test
 npm run build
+```
+
+## Tests
+
+Feature tests were added for the main ticket workflows:
+
+- Creating a ticket
+- Preventing closing an unassigned ticket
+- Closing an assigned ticket
+- Reopening stale high-priority tickets using the Artisan command
+
+Run tests:
+
+```bash
+php artisan test
+```
+
+Run only the ticket feature tests:
+
+```bash
+php artisan test tests/Feature/TicketApiTest.php
 ```
 
 ## Assumptions
