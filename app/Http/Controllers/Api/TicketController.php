@@ -33,32 +33,16 @@ class TicketController extends Controller
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $query = Ticket::query()
+        $tickets = Ticket::query()
             ->with('assignedUser')
             ->status($validated['status'] ?? null)
             ->priority($validated['priority'] ?? null)
-            ->assignedTo($validated['assigned_user_id'] ?? null);
-
-        $sortBy = $validated['sort_by'] ?? 'created_at';
-        $sortDirection = $validated['sort_direction'] ?? 'desc';
-
-        if ($sortBy === 'priority') {
-            $priorityOrder = $sortDirection === 'desc'
-                ? "CASE priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END"
-                : "CASE priority WHEN 'low' THEN 1 WHEN 'medium' THEN 2 WHEN 'high' THEN 3 ELSE 4 END";
-
-            $query->orderByRaw($priorityOrder);
-        } elseif ($sortBy === 'status') {
-            $statusOrder = $sortDirection === 'desc'
-                ? "CASE status WHEN 'open' THEN 1 WHEN 'in_progress' THEN 2 WHEN 'closed' THEN 3 ELSE 4 END"
-                : "CASE status WHEN 'closed' THEN 1 WHEN 'in_progress' THEN 2 WHEN 'open' THEN 3 ELSE 4 END";
-
-            $query->orderByRaw($statusOrder);
-        } else {
-            $query->orderBy($sortBy, $sortDirection);
-        }
-
-        $tickets = $query->paginate($validated['per_page'] ?? 10);
+            ->assignedTo($validated['assigned_user_id'] ?? null)
+            ->applySorting(
+                $validated['sort_by'] ?? null,
+                $validated['sort_direction'] ?? null
+            )
+            ->paginate($validated['per_page'] ?? 10);
 
         return TicketResource::collection($tickets);
     }

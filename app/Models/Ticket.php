@@ -59,4 +59,28 @@ class Ticket extends Model
     {
         return $query->where('status', TicketStatus::OPEN->value);
     }
+
+    public function scopeApplySorting(Builder $query, ?string $sortBy = null, ?string $sortDirection = null): Builder
+    {
+        $sortBy = $sortBy ?: 'created_at';
+        $sortDirection = $sortDirection ?: 'desc';
+
+        if ($sortBy === 'priority') {
+            $priorityOrder = $sortDirection === 'desc'
+                ? "CASE priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END"
+                : "CASE priority WHEN 'low' THEN 1 WHEN 'medium' THEN 2 WHEN 'high' THEN 3 ELSE 4 END";
+
+            return $query->orderByRaw($priorityOrder);
+        }
+
+        if ($sortBy === 'status') {
+            $statusOrder = $sortDirection === 'desc'
+                ? "CASE status WHEN 'open' THEN 1 WHEN 'in_progress' THEN 2 WHEN 'closed' THEN 3 ELSE 4 END"
+                : "CASE status WHEN 'closed' THEN 1 WHEN 'in_progress' THEN 2 WHEN 'open' THEN 3 ELSE 4 END";
+
+            return $query->orderByRaw($statusOrder);
+        }
+
+        return $query->orderBy($sortBy, $sortDirection);
+    }
 }
