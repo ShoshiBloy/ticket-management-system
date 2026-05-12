@@ -87,8 +87,9 @@ CREATE DATABASE ticket_management;
 ```env
 APP_NAME="Ticket Management System"
 APP_ENV=local
-APP_DEBUG=true
-APP_URL=http://127.0.0.1:8000
+APP_KEY=
+APP_DEBUG=false
+APP_URL=http://localhost
 APP_TIMEZONE=Asia/Jerusalem
 
 DB_CONNECTION=sqlsrv
@@ -96,10 +97,12 @@ DB_HOST=localhost
 DB_PORT=
 DB_DATABASE=ticket_management
 DB_USERNAME=sa
-DB_PASSWORD=your_password
+DB_PASSWORD=
 DB_ENCRYPT=no
 DB_TRUST_SERVER_CERTIFICATE=true
 ```
+
+For local debugging, `APP_DEBUG` can be changed to `true`, but it should remain `false` for a cleaner production-like setup.
 
 ### 7. Run migrations and seeders
 
