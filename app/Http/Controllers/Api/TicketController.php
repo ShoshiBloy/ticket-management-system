@@ -121,4 +121,17 @@ class TicketController extends Controller
 
         return TicketResource::collection($tickets);
     }
+
+    public function stats(): JsonResponse
+    {
+        return response()->json([
+            'data' => [
+                'total' => Ticket::count(),
+                'open' => Ticket::where('status', TicketStatus::OPEN->value)->count(),
+                'in_progress' => Ticket::where('status', TicketStatus::IN_PROGRESS->value)->count(),
+                'closed' => Ticket::where('status', TicketStatus::CLOSED->value)->count(),
+                'high' => Ticket::where('priority', TicketPriority::HIGH->value)->count(),
+            ],
+        ]);
+    }
 }

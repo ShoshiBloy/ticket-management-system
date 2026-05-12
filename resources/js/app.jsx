@@ -1,7 +1,7 @@
 import "./bootstrap";
 import "../css/app.css";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import axios from "axios";
 
@@ -31,6 +31,14 @@ function App() {
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+    const [stats, setStats] = useState({
+        total: 0,
+        open: 0,
+        in_progress: 0,
+        closed: 0,
+        high: 0,
+    });
 
     const [filters, setFilters] = useState({
         status: "",
@@ -68,7 +76,25 @@ function App() {
         setTimeout(() => setError(""), 5000);
     };
 
-    const loadTickets = async () => {
+    const loadStats = async () => {
+        try {
+            const response = await axios.get("/api/tickets/stats");
+
+            setStats(
+                response.data.data || {
+                    total: 0,
+                    open: 0,
+                    in_progress: 0,
+                    closed: 0,
+                    high: 0,
+                },
+            );
+        } catch (err) {
+            showError(getErrorMessage(err));
+        }
+    };
+
+    const loadTickets = async (pageToLoad = page) => {
         setLoading(true);
         setError("");
 
@@ -76,7 +102,7 @@ function App() {
             const params = {
                 sort_by: sort.sort_by,
                 sort_direction: sort.sort_direction,
-                page,
+                page: pageToLoad,
                 per_page: perPage,
             };
 
@@ -108,7 +134,11 @@ function App() {
     };
 
     useEffect(() => {
-        loadTickets();
+        loadStats();
+    }, []);
+
+    useEffect(() => {
+        loadTickets(page);
     }, [
         filters.status,
         filters.priority,
@@ -117,16 +147,6 @@ function App() {
         page,
         perPage,
     ]);
-
-    const stats = useMemo(() => {
-        return {
-            total: pagination.total,
-            open: tickets.filter((ticket) => ticket.status === "open").length,
-            inProgress: tickets.filter((ticket) => ticket.status === "in_progress").length,
-            closed: tickets.filter((ticket) => ticket.status === "closed").length,
-            high: tickets.filter((ticket) => ticket.priority === "high").length,
-        };
-    }, [tickets, pagination.total]);
 
     const handleCreate = async (event) => {
         event.preventDefault();
@@ -147,7 +167,9 @@ function App() {
             setIsCreateModalOpen(false);
             setPage(1);
             showMessage("Ticket created successfully.");
-            await loadTickets();
+
+            await loadTickets(1);
+            await loadStats();
         } catch (err) {
             showError(getErrorMessage(err));
         } finally {
@@ -172,7 +194,8 @@ function App() {
             await axios.patch(`/api/tickets/${ticket.id}/status`, { status });
 
             showMessage("Ticket status updated successfully.");
-            await loadTickets();
+            await loadTickets(page);
+            await loadStats();
         } catch (err) {
             showError(getErrorMessage(err));
         }
@@ -218,7 +241,10 @@ function App() {
 
                         <button
                             type="button"
-                            onClick={loadTickets}
+                            onClick={() => {
+                                loadTickets(page);
+                                loadStats();
+                            }}
                             className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow hover:bg-slate-700 disabled:opacity-60"
                             disabled={loading}
                         >
@@ -229,10 +255,10 @@ function App() {
 
                 <section className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                     <StatCard label="Total Tickets" value={stats.total} />
-                    <StatCard label="Open On Page" value={stats.open} />
-                    <StatCard label="In Progress On Page" value={stats.inProgress} />
-                    <StatCard label="Closed On Page" value={stats.closed} />
-                    <StatCard label="High Priority On Page" value={stats.high} />
+                    <StatCard label="Open" value={stats.open} />
+                    <StatCard label="In Progress" value={stats.in_progress} />
+                    <StatCard label="Closed" value={stats.closed} />
+                    <StatCard label="High Priority" value={stats.high} />
                 </section>
 
                 {message && (
@@ -253,7 +279,8 @@ function App() {
                             <div>
                                 <h2 className="text-xl font-bold">Tickets</h2>
                                 <p className="text-sm text-slate-500">
-                                    Filter tickets, sort columns, update statuses, and move between pages.
+                                    Filter tickets, sort columns, update statuses,
+                                    and move between pages.
                                 </p>
                             </div>
 
@@ -306,20 +333,6 @@ function App() {
                                             {priority.label}
                                         </option>
                                     ))}
-                                </select>
-
-                                <select
-                                    value={perPage}
-                                    onChange={(event) => {
-                                        setPage(1);
-                                        setPerPage(Number(event.target.value));
-                                    }}
-                                    className="rounded-xl border border-slate-300 px-4 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                                >
-                                    <option value={5}>5 per page</option>
-                                    <option value={10}>10 per page</option>
-                                    <option value={15}>15 per page</option>
-                                    <option value={25}>25 per page</option>
                                 </select>
                             </div>
                         </div>
@@ -413,22 +426,30 @@ function App() {
                                                     </div>
 
                                                     <div className="mt-1 line-clamp-2 text-sm text-slate-500">
-                                                        {ticket.description || "No description"}
+                                                        {ticket.description ||
+                                                            "No description"}
                                                     </div>
 
                                                     {ticket.handled_at && (
                                                         <div className="mt-2 text-xs text-slate-400">
-                                                            Handled at: {ticket.handled_at}
+                                                            Handled at:{" "}
+                                                            {ticket.handled_at}
                                                         </div>
                                                     )}
                                                 </td>
 
                                                 <td className="px-4 py-4 align-top">
-                                                    <Badge value={ticket.priority} type="priority" />
+                                                    <Badge
+                                                        value={ticket.priority}
+                                                        type="priority"
+                                                    />
                                                 </td>
 
                                                 <td className="px-4 py-4 align-top">
-                                                    <Badge value={ticket.status} type="status" />
+                                                    <Badge
+                                                        value={ticket.status}
+                                                        type="status"
+                                                    />
                                                 </td>
 
                                                 <td className="px-4 py-4 align-top text-sm text-slate-600">
@@ -455,8 +476,12 @@ function App() {
                                                         className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                                     >
                                                         <option value="open">Open</option>
-                                                        <option value="in_progress">In Progress</option>
-                                                        <option value="closed">Closed</option>
+                                                        <option value="in_progress">
+                                                            In Progress
+                                                        </option>
+                                                        <option value="closed">
+                                                            Closed
+                                                        </option>
                                                     </select>
                                                 </td>
                                             </tr>
@@ -465,7 +490,7 @@ function App() {
                             </table>
                         </div>
 
-                        <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="mt-5 flex flex-col gap-4 border-t border-slate-100 pt-4 lg:flex-row lg:items-center lg:justify-between">
                             <div className="text-sm text-slate-500">
                                 Showing page{" "}
                                 <span className="font-semibold text-slate-800">
@@ -475,48 +500,85 @@ function App() {
                                 <span className="font-semibold text-slate-800">
                                     {pagination.last_page}
                                 </span>
-                                {" "}— total{" "}
+                                {" "}- total{" "}
                                 <span className="font-semibold text-slate-800">
                                     {pagination.total}
                                 </span>{" "}
                                 tickets
                             </div>
 
-                            <div className="flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    disabled={page <= 1 || loading}
-                                    onClick={() =>
-                                        setPage((current) =>
-                                            Math.max(current - 1, 1)
-                                        )
-                                    }
-                                    className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                                <select
+                                    value={perPage}
+                                    onChange={(event) => {
+                                        setPage(1);
+                                        setPerPage(Number(event.target.value));
+                                    }}
+                                    className="rounded-xl border border-slate-300 px-4 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                 >
-                                    Previous
-                                </button>
+                                    <option value={5}>5 per page</option>
+                                    <option value={10}>10 per page</option>
+                                    <option value={15}>15 per page</option>
+                                    <option value={25}>25 per page</option>
+                                </select>
 
-                                <span className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700">
-                                    {pagination.current_page}
-                                </span>
-
-                                <button
-                                    type="button"
-                                    disabled={
-                                        page >= pagination.last_page || loading
-                                    }
-                                    onClick={() =>
-                                        setPage((current) =>
-                                            Math.min(
-                                                current + 1,
-                                                pagination.last_page,
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        disabled={page <= 1 || loading}
+                                        onClick={() =>
+                                            setPage((current) =>
+                                                Math.max(current - 1, 1),
                                             )
-                                        )
-                                    }
-                                    className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                    Next
-                                </button>
+                                        }
+                                        className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        Previous
+                                    </button>
+
+                                    <select
+                                        value={page}
+                                        onChange={(event) =>
+                                            setPage(Number(event.target.value))
+                                        }
+                                        className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                        disabled={loading}
+                                    >
+                                        {Array.from(
+                                            { length: pagination.last_page },
+                                            (_, index) => {
+                                                const pageNumber = index + 1;
+
+                                                return (
+                                                    <option
+                                                        key={pageNumber}
+                                                        value={pageNumber}
+                                                    >
+                                                        Page {pageNumber}
+                                                    </option>
+                                                );
+                                            },
+                                        )}
+                                    </select>
+
+                                    <button
+                                        type="button"
+                                        disabled={
+                                            page >= pagination.last_page || loading
+                                        }
+                                        onClick={() =>
+                                            setPage((current) =>
+                                                Math.min(
+                                                    current + 1,
+                                                    pagination.last_page,
+                                                ),
+                                            )
+                                        }
+                                        className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        Next
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </section>
@@ -538,7 +600,8 @@ function App() {
                                     Create New Ticket
                                 </h2>
                                 <p className="mt-1 text-sm text-slate-500">
-                                    Fill in the ticket details and submit it to the system.
+                                    Fill in the ticket details and submit it to the
+                                    system.
                                 </p>
                             </div>
 
