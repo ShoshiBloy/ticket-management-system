@@ -48,6 +48,12 @@ class TicketController extends Controller
                 : "CASE priority WHEN 'low' THEN 1 WHEN 'medium' THEN 2 WHEN 'high' THEN 3 ELSE 4 END";
 
             $query->orderByRaw($priorityOrder);
+        } elseif ($sortBy === 'status') {
+            $statusOrder = $sortDirection === 'desc'
+                ? "CASE status WHEN 'open' THEN 1 WHEN 'in_progress' THEN 2 WHEN 'closed' THEN 3 ELSE 4 END"
+                : "CASE status WHEN 'closed' THEN 1 WHEN 'in_progress' THEN 2 WHEN 'open' THEN 3 ELSE 4 END";
+
+            $query->orderByRaw($statusOrder);
         } else {
             $query->orderBy($sortBy, $sortDirection);
         }
