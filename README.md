@@ -282,6 +282,14 @@ public function openTickets()
 - Uses pagination.
 - Returns a consistent API Resource response.
 
+## Architecture Notes
+
+The project separates responsibilities between controllers, requests, services, models, resources, commands, and React components.
+
+Ticket filtering and sorting are handled through Eloquent query scopes, including custom business sorting for priority and status. This keeps the controller cleaner and makes the query logic easier to reuse and maintain.
+
+The React frontend was split into reusable components, so `app.jsx` stays focused on state management and API communication.
+
 ## Frontend
 
 The frontend was implemented with React as a bonus requirement.
@@ -309,6 +317,14 @@ resources/js/ticketHelpers.js
 
 These helpers are used for label formatting and frontend ticket validation logic.
 
+Reusable React components were extracted to:
+
+```text
+resources/js/components
+```
+
+This includes the table, pagination, statistics cards, badges, and create-ticket modal.
+
 ## Project Structure
 
 ```text
@@ -325,7 +341,13 @@ app/
 resources/
  ├── js
  │   ├── app.jsx
- │   └── ticketHelpers.js
+ │   ├── ticketHelpers.js
+ │   └── components
+ │       ├── Badge.jsx
+ │       ├── StatCard.jsx
+ │       ├── TicketCreateModal.jsx
+ │       ├── TicketPagination.jsx
+ │       └── TicketTable.jsx
  └── views
 ```
 
