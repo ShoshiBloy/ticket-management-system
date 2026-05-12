@@ -109,10 +109,15 @@ class TicketController extends Controller
 
     public function assign(AssignTicketRequest $request, Ticket $ticket): JsonResponse
     {
-        $ticket = $this->ticketService->assign($ticket, (int)$request->validated('assigned_user_id'));
+        $assignedUserId = $request->validated('assigned_user_id');
+
+        $ticket = $this->ticketService->assign(
+            $ticket,
+            $assignedUserId ? (int)$assignedUserId : null
+        );
 
         return response()->json([
-            'message' => 'Ticket assigned successfully.',
+            'message' => $assignedUserId ? 'Ticket assigned successfully.' : 'Ticket unassigned successfully.',
             'data' => new TicketResource($ticket->load('assignedUser')),
         ]);
     }

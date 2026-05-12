@@ -5,10 +5,7 @@ import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import axios from "axios";
 
-import {
-    formatTicketLabel,
-    getTicketCloseError,
-} from "./ticketHelpers";
+import { formatTicketLabel, getTicketCloseError } from "./ticketHelpers";
 
 const statuses = [
     { value: "", label: "All statuses" },
@@ -26,6 +23,7 @@ const priorities = [
 
 function App() {
     const [tickets, setTickets] = useState([]);
+    const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState("");
@@ -43,6 +41,7 @@ function App() {
     const [filters, setFilters] = useState({
         status: "",
         priority: "",
+        assigned_user_id: "",
     });
 
     const [sort, setSort] = useState({
@@ -74,6 +73,15 @@ function App() {
     const showError = (text) => {
         setError(text);
         setTimeout(() => setError(""), 5000);
+    };
+
+    const loadUsers = async () => {
+        try {
+            const response = await axios.get("/api/users");
+            setUsers(response.data.data || []);
+        } catch (err) {
+            showError(getErrorMessage(err));
+        }
     };
 
     const loadStats = async () => {
@@ -114,6 +122,10 @@ function App() {
                 params.priority = filters.priority;
             }
 
+            if (filters.assigned_user_id) {
+                params.assigned_user_id = filters.assigned_user_id;
+            }
+
             const response = await axios.get("/api/tickets", { params });
 
             setTickets(response.data.data || []);
@@ -134,6 +146,7 @@ function App() {
     };
 
     useEffect(() => {
+        loadUsers();
         loadStats();
     }, []);
 
@@ -142,6 +155,7 @@ function App() {
     }, [
         filters.status,
         filters.priority,
+        filters.assigned_user_id,
         sort.sort_by,
         sort.sort_direction,
         page,
@@ -194,6 +208,27 @@ function App() {
             await axios.patch(`/api/tickets/${ticket.id}/status`, { status });
 
             showMessage("Ticket status updated successfully.");
+            await loadTickets(page);
+            await loadStats();
+        } catch (err) {
+            showError(getErrorMessage(err));
+        }
+    };
+
+    const handleAssignUser = async (ticket, userId) => {
+        setError("");
+        setMessage("");
+
+        try {
+            await axios.patch(`/api/tickets/${ticket.id}/assign`, {
+                assigned_user_id: userId ? Number(userId) : null,
+            });
+
+            showMessage(
+                userId
+                    ? "Ticket assigned successfully."
+                    : "Ticket unassigned successfully.",
+            );
             await loadTickets(page);
             await loadStats();
         } catch (err) {
@@ -276,8 +311,9 @@ function App() {
                             <div>
                                 <h2 className="text-xl font-bold">Tickets</h2>
                                 <p className="text-sm text-slate-500">
-                                    Filter tickets, sort columns, update statuses,
-                                    and move between pages.
+                                    Filter tickets, sort columns, update
+                                    statuses, assign users, and move between
+                                    pages.
                                 </p>
                             </div>
 
@@ -331,6 +367,27 @@ function App() {
                                         </option>
                                     ))}
                                 </select>
+
+                                <select
+                                    value={filters.assigned_user_id}
+                                    onChange={(event) => {
+                                        setPage(1);
+                                        setFilters({
+                                            ...filters,
+                                            assigned_user_id:
+                                                event.target.value,
+                                        });
+                                    }}
+                                    className="rounded-xl border border-slate-300 px-4 py-2 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                >
+                                    <option value="">All users</option>
+
+                                    {users.map((user) => (
+                                        <option key={user.id} value={user.id}>
+                                            {user.name}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
 
@@ -344,37 +401,49 @@ function App() {
                                         <th className="w-32 px-4 py-3">
                                             <button
                                                 type="button"
-                                                onClick={() => handleSort("priority")}
+                                                onClick={() =>
+                                                    handleSort("priority")
+                                                }
                                                 className="flex items-center gap-2 font-bold hover:text-blue-600"
                                             >
                                                 Priority{" "}
-                                                <span>{sortIcon("priority")}</span>
+                                                <span>
+                                                    {sortIcon("priority")}
+                                                </span>
                                             </button>
                                         </th>
 
                                         <th className="w-32 px-4 py-3">
                                             <button
                                                 type="button"
-                                                onClick={() => handleSort("status")}
+                                                onClick={() =>
+                                                    handleSort("status")
+                                                }
                                                 className="flex items-center gap-2 font-bold hover:text-blue-600"
                                             >
                                                 Status{" "}
-                                                <span>{sortIcon("status")}</span>
+                                                <span>
+                                                    {sortIcon("status")}
+                                                </span>
                                             </button>
                                         </th>
 
-                                        <th className="w-40 px-4 py-3">
+                                        <th className="w-56 px-4 py-3">
                                             Assigned
                                         </th>
 
                                         <th className="w-44 px-4 py-3">
                                             <button
                                                 type="button"
-                                                onClick={() => handleSort("created_at")}
+                                                onClick={() =>
+                                                    handleSort("created_at")
+                                                }
                                                 className="flex items-center gap-2 font-bold hover:text-blue-600"
                                             >
                                                 Created{" "}
-                                                <span>{sortIcon("created_at")}</span>
+                                                <span>
+                                                    {sortIcon("created_at")}
+                                                </span>
                                             </button>
                                         </th>
 
@@ -449,11 +518,44 @@ function App() {
                                                     />
                                                 </td>
 
-                                                <td className="px-4 py-4 align-top text-sm text-slate-600">
-                                                    {ticket.assigned_user?.name || (
-                                                        <span className="text-slate-400">
+                                                <td className="px-4 py-4 align-top">
+                                                    <select
+                                                        value={
+                                                            ticket.assigned_user
+                                                                ?.id || ""
+                                                        }
+                                                        onChange={(event) =>
+                                                            handleAssignUser(
+                                                                ticket,
+                                                                event.target
+                                                                    .value,
+                                                            )
+                                                        }
+                                                        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                                    >
+                                                        <option value="">
                                                             Unassigned
-                                                        </span>
+                                                        </option>
+
+                                                        {users.map((user) => (
+                                                            <option
+                                                                key={user.id}
+                                                                value={user.id}
+                                                            >
+                                                                {user.name}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+
+                                                    {ticket.assigned_user
+                                                        ?.email && (
+                                                        <div className="mt-1 truncate text-xs text-slate-400">
+                                                            {
+                                                                ticket
+                                                                    .assigned_user
+                                                                    .email
+                                                            }
+                                                        </div>
                                                     )}
                                                 </td>
 
@@ -467,12 +569,15 @@ function App() {
                                                         onChange={(event) =>
                                                             handleStatusChange(
                                                                 ticket,
-                                                                event.target.value,
+                                                                event.target
+                                                                    .value,
                                                             )
                                                         }
                                                         className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                                     >
-                                                        <option value="open">Open</option>
+                                                        <option value="open">
+                                                            Open
+                                                        </option>
                                                         <option value="in_progress">
                                                             In Progress
                                                         </option>
@@ -496,8 +601,8 @@ function App() {
                                 of{" "}
                                 <span className="font-semibold text-slate-800">
                                     {pagination.last_page}
-                                </span>
-                                {" "}- total{" "}
+                                </span>{" "}
+                                — total{" "}
                                 <span className="font-semibold text-slate-800">
                                     {pagination.total}
                                 </span>{" "}
@@ -561,7 +666,8 @@ function App() {
                                     <button
                                         type="button"
                                         disabled={
-                                            page >= pagination.last_page || loading
+                                            page >= pagination.last_page ||
+                                            loading
                                         }
                                         onClick={() =>
                                             setPage((current) =>
@@ -597,8 +703,8 @@ function App() {
                                     Create New Ticket
                                 </h2>
                                 <p className="mt-1 text-sm text-slate-500">
-                                    Fill in the ticket details and submit it to the
-                                    system.
+                                    Fill in the ticket details and submit it to
+                                    the system.
                                 </p>
                             </div>
 

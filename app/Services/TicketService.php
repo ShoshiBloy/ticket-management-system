@@ -52,7 +52,7 @@ class TicketService
         return $ticket->refresh();
     }
 
-    public function assign(Ticket $ticket, int $userId): Ticket
+    public function assign(Ticket $ticket, ?int $userId): Ticket
     {
         $ticket->update([
             'assigned_user_id' => $userId,

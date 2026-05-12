@@ -20,10 +20,11 @@ class AssignTicketRequest extends FormRequest
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
+
     public function rules(): array
     {
         return [
-            'assigned_user_id' => ['required', 'exists:users,id'],
+            'assigned_user_id' => ['nullable', 'exists:users,id'],
         ];
     }
 }
