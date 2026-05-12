@@ -33,13 +33,26 @@ class TicketController extends Controller
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $tickets = Ticket::query()
+        $query = Ticket::query()
             ->with('assignedUser')
             ->status($validated['status'] ?? null)
             ->priority($validated['priority'] ?? null)
-            ->assignedTo($validated['assigned_user_id'] ?? null)
-            ->orderBy($validated['sort_by'] ?? 'created_at', $validated['sort_direction'] ?? 'desc')
-            ->paginate($validated['per_page'] ?? 10);
+            ->assignedTo($validated['assigned_user_id'] ?? null);
+
+        $sortBy = $validated['sort_by'] ?? 'created_at';
+        $sortDirection = $validated['sort_direction'] ?? 'desc';
+
+        if ($sortBy === 'priority') {
+            $priorityOrder = $sortDirection === 'desc'
+                ? "CASE priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END"
+                : "CASE priority WHEN 'low' THEN 1 WHEN 'medium' THEN 2 WHEN 'high' THEN 3 ELSE 4 END";
+
+            $query->orderByRaw($priorityOrder);
+        } else {
+            $query->orderBy($sortBy, $sortDirection);
+        }
+
+        $tickets = $query->paginate($validated['per_page'] ?? 10);
 
         return TicketResource::collection($tickets);
     }
